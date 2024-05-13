@@ -12,7 +12,7 @@ m=1; % [kg] mass of the object
 % Aerodynamic 
 
 % Trajectory
-% SAVERIO IS A BITCH 
+% SAVERIO IS A BITCH and i am too 
 
 
 
