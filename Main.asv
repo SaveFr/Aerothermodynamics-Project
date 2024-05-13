@@ -7,12 +7,15 @@ M = 5.975*1e24; % [kg] Earth's mass
 G = 6.674*1e-11; %[m^3*kg^-1*s^-1] gravitional constant 
 gamma = 1.4; % [-] Specific Heat ratio
 R_E = 6371; %[km] Radius of the Earth 
+rho_sl = 1.225 ; % [kg/m^3] density at sea level 
 param.R_E=R_E;
 param.m=m;
+param.rho_sl=rho_sl;
 
 %------------ Object characteristics ------------%
 m=1; % [kg] mass of the object 
-
+R_c=10; % [m] radius of curvature of the object 
+param.R_c=R_c;
 %--------------------- ATMOSPHERIC --------------------------------% 
 
 % In this part, we compute the density, temperature, pressure, speed of
@@ -70,7 +73,10 @@ t_span=linspace(t_i,t_f,nbr_points);
 %--------------------- ABLATION --------------------------------% 
 
 %--------------------- THERMAL --------------------------------% 
-
+Cp= 1004; %[J/kg/K] specific heat at constant pressure for air
+h_s= Cp*T + 1/2*V^2; % [J/kg] specific total enthalpy
+h_w_300= 1; % [J/kg] wall enthalpy evaluated at 300 K
+Q_c= 1.103*1e8/sqrt(param.R_c)*sqrt(rho/param.rho_sl)*(V/7925)^3.5 * (h_s - h_w_300)/(h_s - 3.045*1e5);
 %--------------------- AEROTHERMODYNAMICS --------------------------------% 
 
 function m=ablation(Q,hf)
