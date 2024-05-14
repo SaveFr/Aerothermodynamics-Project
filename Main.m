@@ -153,9 +153,11 @@ function dUdt = U_dot(t,U,param)
     P=param.P(i);
     rho=param.rho(i);
     g=param.g(i);
-
-    % Need to call ablation module after 
-    m=param.m;
+    T_body = param.T_body;
+    Kn = param.Kn;
+    % Need to call ablation module after
+    Q = Q_compute(Kn,rho,V,T,T_body,param);
+    
 
     % Computation of the derivative
     D= 1/2*rho*V^2*S*Cd;

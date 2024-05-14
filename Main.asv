@@ -22,6 +22,7 @@ param.eps=1;
 param.h_w_300= 1; % [J/kg] wall enthalpy evaluated at 300 K
 param.Cp_body=1; % [J/kg/K] specific heat at constant pressure of the body
 param.hf=1; % [J/kg] latent heat of fusion
+param.Tf=1; % [K] temperature of fusion of the material
 
 %--------------------- ATMOSPHERIC --------------------------------% 
 
@@ -93,6 +94,7 @@ U_init=[r_0; V_0; flight_path_angle_0]; % vector of initial conditions
 % -------------------- Functions -----------------------------------------%
 
 function dTdt= T_dot(param,T,t,Q,hf)
+    [~,List_m]=ode78( @(t) m_dot(t,T,Q,param),t_span,m_init);
     m=ablation(t,Q,hf);
     Cp=param.Cp;
     dTdt=Q/(Cp*m);
@@ -120,8 +122,14 @@ function Q = Q_compute(Kn,rho,V,T,T_body,param)
 end 
 
 
-function dmdt = m_dot(t,T,Q,hf)
-   ;
+function dmdt = m_dot(t,T,Q,param)
+   Tf=param.Tf;
+   hf=param.hf;
+   if T > Tf
+       dmdt=Q/hf;
+   else
+       dmdt=0;
+   end
 end
 
 
@@ -145,9 +153,10 @@ function dUdt = U_dot(t,U,param)
     P=param.P(i);
     rho=param.rho(i);
     g=param.g(i);
-
-    % Need to call ablation module after 
-    m=param.m;
+    
+    T_body = param.
+    % Need to call ablation module after
+    Q = Q_compute(Kn,rho,V,T,T_body,param);
 
     % Computation of the derivative
     D= 1/2*rho*V^2*S*Cd;
