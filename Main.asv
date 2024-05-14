@@ -3,19 +3,26 @@ clc; clear all;
 %--------------------- AEROTHERMODYNAMIC PROJECT -------------------%
 % Data needed
 %------------ Constants --------------- % 
-M = 5.975*1e24; % [kg] Earth's mass
-G = 6.674*1e-11; %[m^3*kg^-1*s^-1] gravitional constant 
-gamma = 1.4; % [-] Specific Heat ratio
-R_E = 6371; %[km] Radius of the Earth 
-rho_sl = 1.225 ; % [kg/m^3] density at sea level 
-param.R_E=R_E;
-param.m=m;
-param.rho_sl=rho_sl;
+param.M = 5.975*1e24; % [kg] Earth's mass
+param.G= 6.674*1e-11; %[m^3*kg^-1*s^-1] gravitional constant 
+param.gamma= 1.4; % [-] Specific Heat ratio
+param.R_E=6371; %[km] Radius of the Earth
+param.rho_sl=1.225 ; % [kg/m^3] density at sea level 
+
+param.Cp=1004;%[J/kg/K] specific heat at constant pressure for air
 
 %------------ Object characteristics ------------%
-m=1; % [kg] mass of the object 
-R_c=10; % [m] radius of curvature of the object 
-param.R_c=R_c;
+param.R_c=1; % [m] radius of curvature of the object 
+param.m=1;  % [kg] mass of the object 
+param.L=1; % [m] length of the object 
+
+% ------ Material properties -----------------------%
+param.alpha=1;
+param.eps=1;
+param.h_w_300= 1; % [J/kg] wall enthalpy evaluated at 300 K
+param.Cp_body=1; % [J/kg/K] specific heat at constant pressure of the body
+param.hf=1; % [J/kg] latent heat of fusion
+
 %--------------------- ATMOSPHERIC --------------------------------% 
 
 % In this part, we compute the density, temperature, pressure, speed of
@@ -41,17 +48,20 @@ param.g=List_g;
 % g= m*G*M/r^2; % [m/s^2] acceleration of gravity 
 % g
 
+% Defining the time span
+t_i=0;    % [s] initial time 
+t_f=1000; %[s] end time 
+nbr_points= 10000; % [-] number of points 
+t_span=linspace(t_i,t_f,nbr_points);
+
 %--------------------- AERODYNAMICS --------------------------------% 
 
 %--------------------- TRAJECTORY --------------------------------% 
 %----------------TO DO: check for modified Newton Theory ----------------------% 
 % Unknowns
-Cd= 2.2; % [-] drag coefficient 
-S = 2; % [m^2] area of drag
-L=0; % [N] lift, it is neglected
-param.L=L;
-param.S=S;
-param.Cd=Cd;
+param.Lift=0; % [N] lift, it is neglected
+param.S=2; % [m^2] area of drag
+param.Cd=2.2; % [-] drag coefficient 
 
 % Initial condition 
 h_0=100;        % [km] initial altitude 
@@ -59,28 +69,59 @@ r_0=R_E+h_0;    % [km] initial radius
 V_0=5;          % [km/s] initial speed 
 flight_path_angle_0= -deg2rad(15); % [deg] initial flight path angle
 
-% Defining the time span
-t_i=0;    % [s] initial time 
-t_f=1000; %[s] end time 
-nbr_points= 10000; % [-] number of points 
+
 
 % Computation
 U_init=[r_0; V_0; flight_path_angle_0]; % vector of initial conditions
-t_span=linspace(t_i,t_f,nbr_points);
 [~,List_U]=ode78( @(t,U) U_dot(t,U,param),t_span,U_init);
 [~,List_U_multi]=ode113( @(t,U) U_dot(t,U,param),t_span,U_init);
 
 %--------------------- ABLATION --------------------------------% 
 
+
+
 %--------------------- THERMAL --------------------------------% 
-Cp= 1004; %[J/kg/K] specific heat at constant pressure for air
-h_s= Cp*T + 1/2*V^2; % [J/kg] specific total enthalpy
-h_w_300= 1; % [J/kg] wall enthalpy evaluated at 300 K
-Q_c= 1.103*1e8/sqrt(param.R_c)*sqrt(rho/param.rho_sl)*(V/7925)^3.5 * (h_s - h_w_300)/(h_s - 3.045*1e5);
+[~,List_T]=ode78( @(t,U) T_dot(t,U,m,param),t_span,U_init);
+
+
+
+
+
+
 %--------------------- AEROTHERMODYNAMICS --------------------------------% 
 
-function m=ablation(Q,hf)
-    m=1;
+% -------------------- Functions -----------------------------------------%
+
+function dTdt= T_dot(param,T,t,Q,hf)
+    m=ablation(t,Q,hf);
+    Cp=param.Cp;
+    dTdt=Q/(Cp*m);
+end
+
+function Q = Q_compute(Kn,rho,V,T,T_body,param)
+
+    alpha=param.alpha;
+    eps=param.eps;
+    Cp=param.Cp;
+    h_w_300=param.h_w_300;
+    h_s= Cp*T + 1/2*V^2; % [J/kg] specific total enthalpy
+
+    if Kn>10 % free molecular flow 
+        Q_c= alpha*rho*V^3/2;
+    elseif Kn<0.01 % for continuum regime 
+        Q_c= 1.103*1e8/sqrt(param.R_c)*sqrt(rho/param.rho_sl)*(V/7925)^3.5 * (h_s - h_w_300)/(h_s - 3.045*1e5);
+    end
+
+    % Re-Radiation part computation
+    Q_RR= eps*sigma*T_body^4 ; % [J/m^2] net heat flux (T is the temperature of the body)
+    Q_rad= eps*sigma*T^4 ; % [J/m^2] net heat flux (T is the temperature of the atmosphere)
+    Q= Q_c + Q_rad - Q_RR;
+
+end 
+
+
+function dmdt = m_dot(t,T,Q,hf)
+   ;
 end
 
 
